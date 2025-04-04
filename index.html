@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            text-align: left;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            width: 150px;
+        }
+        .black-box {
+            background: black;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        .download-btn, .add-btn {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .total {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="logo.png" alt="Logo">
+        </div>
+        <div class="black-box">PRESUPUESTO</div>
+        <p><strong>Cliente:</strong> <input type="text" id="cliente" placeholder="Nombre del cliente"></p>
+        <p><strong>Presupuesto N°:</strong> <input type="text" id="numero" value="0001"></p>
+        <p><strong>Dirección:</strong> <input type="text" id="direccion" placeholder="Calle y ciudad"></p>
+        <p><strong>Fecha:</strong> <input type="date" id="fecha"></p>
+        <table id="tabla">
+            <tr>
+                <th>Descripción</th>
+                <th>Precio</th>
+            </tr>
+        </table>
+        <button class="add-btn" onclick="agregarFila()">Agregar Ítem</button>
+        <p class="total">Total: $<span id="total">0</span></p>
+        <h3>Información para el pago</h3>
+        <p>Beneficiario: Mateo López</p>
+        <p>Número de cuenta: 0123 4567 8901</p>
+        <p>Banco Borcelle</p>
+        <button class="download-btn" onclick="descargarPDF()">Descargar PDF</button>
+    </div>
+    <script>
+        function calcularTotal() {
+            let total = 0;
+            document.querySelectorAll('.precio').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById("total").textContent = total.toFixed(2);
+        }
+
+        function agregarFila() {
+            let table = document.getElementById("tabla");
+            let row = table.insertRow();
+            let cell1 = row.insertCell(0);
+            let cell2 = row.insertCell(1);
+            cell1.innerHTML = '<input type="text" class="desc" placeholder="Descripción">';
+            cell2.innerHTML = '<input type="number" class="precio" value="0" oninput="calcularTotal()">';
+        }
+
+        function descargarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Agregar logo
+            const img = new Image();
+            img.src = 'logo.png';
+            img.onload = function () {
+                doc.addImage(img, 'PNG', 10, 10, 40, 40);
+                generarPDF(doc);
+            };
+
+            function generarPDF(doc) {
+                doc.setFillColor(0, 0, 0);
+                doc.rect(10, 55, 190, 10, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(16);
+                doc.text("PRESUPUESTO", 90, 62);
+
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(12);
+                doc.text("Cliente: " + document.getElementById("cliente").value, 20, 80);
+                doc.text("Presupuesto N°: " + document.getElementById("numero").value, 120, 80);
+                doc.text("Dirección: " + document.getElementById("direccion").value, 20, 90);
+                doc.text("Fecha: " + document.getElementById("fecha").value, 120, 90);
+
+                let y = 110;
+                doc.setFontSize(14);
+                doc.text("Descripción", 20, y);
+                doc.text("Precio", 150, y);
+                doc.line(20, y + 2, 190, y + 2);
+                y += 10;
+
+                doc.setFontSize(12);
+                let items = document.querySelectorAll('.desc');
+                for (let i = 0; i < 5; i++) {
+                    let desc = items[i] ? items[i].value : "";
+                    let precio = items[i] ? document.querySelectorAll('.precio')[i].value : "";
+                    doc.text(desc, 20, y);
+                    doc.text("$" + (precio || "0.00"), 150, y);
+                    doc.line(20, y + 2, 190, y + 2);
+                    y += 10;
+                }
+
+                doc.setFontSize(14);
+                doc.text("Total: $" + document.getElementById("total").textContent, 150, y + 10);
+
+                // Pie de página
+                doc.setFontSize(10);
+                doc.text("Gracias por su preferencia", 80, 280);
+                doc.line(10, 285, 200, 285);
+                doc.text("Teléfono: (123) 456-7890 | Email: contacto@empresa.com", 40, 290);
+                doc.text("Dirección: Calle 123, Ciudad, País", 65, 295);
+
+                doc.save("Presupuesto.pdf");
+            }
+        }
+    </script>
+</body>
+</html>
