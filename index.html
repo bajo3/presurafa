@@ -83,9 +83,9 @@
         <button class="add-btn" onclick="agregarFila()">Agregar Ítem</button>
         <p class="total">Total: $<span id="total">0</span></p>
         <h3>Información para el pago</h3>
-        <p>Beneficiario: Mateo López</p>
-        <p>Número de cuenta: 0123 4567 8901</p>
-        <p>Banco Borcelle</p>
+        <p>Beneficiario: Rafael Marino</p>
+        <p>Alias de cuenta: simatec.lo.soluciona</p>
+        <p>MercadoPago</p>
         <button class="download-btn" onclick="descargarPDF()">Descargar PDF</button>
     </div>
     <script>
@@ -157,8 +157,8 @@
                 doc.setFontSize(10);
                 doc.text("Gracias por su preferencia", 80, 280);
                 doc.line(10, 285, 200, 285);
-                doc.text("Teléfono: (123) 456-7890 | Email: contacto@empresa.com", 40, 290);
-                doc.text("Dirección: Calle 123, Ciudad, País", 65, 295);
+                doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 40, 290);
+                doc.text("Dirección: Roncahue 150", 65, 295);
 
                 doc.save("Presupuesto.pdf");
             }
