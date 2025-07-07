@@ -125,78 +125,117 @@ function descargarPDF() {
 }
 
 function generarPDF(doc, cliente, numero, fecha) {
+    // Configuraciones generales
     doc.setFont("helvetica", "normal");
-
-    doc.setFillColor(0, 0, 0);
-    doc.rect(10, 55, 190, 10, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.text("PRESUPUESTO", 105, 62, null, null, 'center');
-
-    doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+
+    // Logo y título
+    const img = new Image();
+    img.src = 'logo.png';
+    // Si la carga de logo es asíncrona, mejor manejar fuera o con promesas.
+    // Acá asumimos ya cargado.
+
+    doc.addImage(img, 'PNG', 15, 10, 40, 40);
+
+    doc.setFontSize(22);
+    doc.setTextColor(0, 75, 150); // Azul suave
+    doc.setFont("helvetica", "bold");
+    doc.text("PRESUPUESTO", 105, 35, null, null, "center");
+
+    // Línea separadora
+    doc.setDrawColor(0, 75, 150);
+    doc.setLineWidth(0.8);
+    doc.line(15, 45, 195, 45);
+
+    // Información cliente y datos
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
 
     const clienteLines = doc.splitTextToSize("Cliente: " + cliente, 90);
-    doc.text(clienteLines, 20, 80);
+    doc.text(clienteLines, 15, 55);
 
-    const offsetY = clienteLines.length > 1 ? (clienteLines.length - 1) * 6 : 0;
-    doc.text("Presupuesto N°: " + numero, 120, 80 + offsetY);
+    const offsetY = clienteLines.length > 1 ? clienteLines.length * 6 : 0;
+    doc.text("Presupuesto N°: " + numero, 130, 55 + offsetY);
 
     const direccion = document.getElementById("direccion").value || "";
     const direccionLines = doc.splitTextToSize("Dirección: " + direccion, 90);
-    const yDireccion = 90 + offsetY;
-    doc.text(direccionLines, 20, yDireccion);
-    doc.text("Fecha: " + fecha, 120, yDireccion + direccionLines.length * 6);
+    const yDireccion = 65 + offsetY;
+    doc.text(direccionLines, 15, yDireccion);
 
+    doc.text("Fecha: " + fecha, 130, yDireccion + direccionLines.length * 6);
+
+    // Tabla encabezados
     let y = yDireccion + direccionLines.length * 6 + 20;
+    doc.setFillColor(0, 75, 150);
+    doc.setDrawColor(0, 75, 150);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("Descripción", 20, y);
+
+    doc.rect(15, y - 10, 180, 12, 'F'); // cubre de 15 a 195 (ancho total)    doc.text("Descripción", 20, y);
     doc.text("Precio", 150, y);
-    doc.line(20, y + 2, 190, y + 2);
-    y += 10;
+    doc.line(15, y + 3, 195, y + 3);
+
+    y += 15;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
 
     const itemsDesc = document.querySelectorAll('.desc');
     const itemsPrecio = document.querySelectorAll('.precio');
-    doc.setFontSize(12);
 
     for (let i = 0; i < itemsDesc.length; i++) {
         const desc = itemsDesc[i].value || "";
         const precio = itemsPrecio[i].value || "0.00";
 
-        const descLines = doc.splitTextToSize(desc, 120);
+        const descLines = doc.splitTextToSize(desc, 140);
         doc.text(descLines, 20, y);
         doc.text("$" + parseFloat(precio).toFixed(2), 150, y);
 
         const lineHeight = 6;
         const blockHeight = descLines.length * lineHeight;
 
-        y += blockHeight + 2;
-        doc.line(20, y, 190, y);
-        y += 4;
+        y += blockHeight + 6;
+        doc.setDrawColor(220, 220, 220);
+        doc.line(15, y - 4, 195, y - 4);
     }
 
+    // Total con fondo claro
+    doc.setFillColor(230, 240, 255);
+    doc.rect(130, y, 70, 12, 'F');
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     const total = parseFloat(document.getElementById("total").textContent).toLocaleString('es-AR', { minimumFractionDigits: 2 });
     doc.text("Total: $" + total, 150, y + 10);
 
+    // Observaciones
     const obs = document.getElementById("observaciones").value;
     if (obs.trim()) {
-        y += 20;
+        y += 25;
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(12);
-        doc.text("Observaciones:", 20, y);
-        const obsLines = doc.splitTextToSize(obs, 160);
-        doc.text(obsLines, 20, y + 8);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Observaciones:", 15, y);
+        const obsLines = doc.splitTextToSize(obs, 180);
+        doc.text(obsLines, 15, y + 8);
     }
 
+    // Footer
     doc.setFontSize(10);
-    doc.text("Gracias por su preferencia", 105, 280, null, null, 'center');
-    doc.line(10, 285, 200, 285);
-    doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 40, 290);
-    doc.text("Dirección: Roncahue 150", 65, 295);
+    doc.setTextColor(100);
+    doc.text("Gracias por su preferencia", 105, 280, null, null, "center");
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, 285, 195, 285);
+    doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 105, 290, null, null, "center");
+    doc.text("Dirección: Roncahue 150", 105, 295, null, null, "center");
 
+    // Nombre archivo seguro
     const nombreArchivo = `Presupuesto_${numero}_${cliente.replace(/\s+/g, "_").substring(0, 30)}.pdf`;
     doc.save(nombreArchivo);
 }
+
 
 
 function poblarHistorial() {
