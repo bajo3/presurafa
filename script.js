@@ -67,7 +67,6 @@ function guardarPresupuesto() {
     alert("Presupuesto guardado");
 }
 
-
 function cargarPresupuesto() {
     const data = JSON.parse(localStorage.getItem("presupuesto"));
     if (!data) return alert("No hay presupuesto guardado");
@@ -93,7 +92,6 @@ window.addEventListener("DOMContentLoaded", () => {
     poblarHistorial();
 });
 
-
 function descargarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -101,22 +99,19 @@ function descargarPDF() {
     const cliente = document.getElementById("cliente").value || "Cliente";
     let numero = document.getElementById("numero").value;
 
-    // Si el campo está vacío, tomar el siguiente correlativo
     if (!numero || numero.trim() === "") {
         let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPresupuesto") || "0");
         numero = (ultimoNumero + 1).toString().padStart(4, '0');
         document.getElementById("numero").value = numero;
+        localStorage.setItem("ultimoNumeroPresupuesto", parseInt(numero));
     }
-
-    // Guardar el nuevo número como el último usado
-    localStorage.setItem("ultimoNumeroPresupuesto", parseInt(numero));
 
     const fecha = document.getElementById("fecha").value || new Date().toISOString().split('T')[0];
 
     const img = new Image();
     img.src = 'logo.png';
     img.onload = function () {
-        doc.addImage(img, 'PNG', 10, 10, 40, 40);
+        doc.addImage(img, 'PNG', 15, 10, 40, 40);
         generarPDF(doc, cliente, numero, fecha);
     };
     img.onerror = function () {
@@ -125,21 +120,13 @@ function descargarPDF() {
 }
 
 function generarPDF(doc, cliente, numero, fecha) {
-    // Configuraciones generales
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
 
-    // Logo y título
-    const img = new Image();
-    img.src = 'logo.png';
-    // Si la carga de logo es asíncrona, mejor manejar fuera o con promesas.
-    // Acá asumimos ya cargado.
-
-    doc.addImage(img, 'PNG', 15, 10, 40, 40);
-
+    // Título
     doc.setFontSize(22);
-    doc.setTextColor(0, 75, 150); // Azul suave
+    doc.setTextColor(0, 75, 150);
     doc.setFont("helvetica", "bold");
     doc.text("PRESUPUESTO", 105, 35, null, null, "center");
 
@@ -148,7 +135,7 @@ function generarPDF(doc, cliente, numero, fecha) {
     doc.setLineWidth(0.8);
     doc.line(15, 45, 195, 45);
 
-    // Información cliente y datos
+    // Cliente y otros datos
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
@@ -166,7 +153,7 @@ function generarPDF(doc, cliente, numero, fecha) {
 
     doc.text("Fecha: " + fecha, 130, yDireccion + direccionLines.length * 6);
 
-    // Tabla encabezados
+    // Tabla de productos
     let y = yDireccion + direccionLines.length * 6 + 20;
     doc.setFillColor(0, 75, 150);
     doc.setDrawColor(0, 75, 150);
@@ -174,9 +161,9 @@ function generarPDF(doc, cliente, numero, fecha) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
 
-    doc.rect(15, y - 10, 180, 12, 'F'); // cubre de 15 a 195 (ancho total)    doc.text("Descripción", 20, y);
+    doc.rect(15, y - 10, 180, 12, 'F');
+    doc.text("Descripción", 20, y);
     doc.text("Precio", 150, y);
-    doc.line(15, y + 3, 195, y + 3);
 
     y += 15;
     doc.setTextColor(0, 0, 0);
@@ -190,19 +177,18 @@ function generarPDF(doc, cliente, numero, fecha) {
         const desc = itemsDesc[i].value || "";
         const precio = itemsPrecio[i].value || "0.00";
 
-        const descLines = doc.splitTextToSize(desc, 140);
+        const descLines = doc.splitTextToSize(desc, 120);
         doc.text(descLines, 20, y);
         doc.text("$" + parseFloat(precio).toFixed(2), 150, y);
 
-        const lineHeight = 6;
-        const blockHeight = descLines.length * lineHeight;
-
+        const blockHeight = descLines.length * 6;
         y += blockHeight + 6;
+
         doc.setDrawColor(220, 220, 220);
         doc.line(15, y - 4, 195, y - 4);
     }
 
-    // Total con fondo claro
+    // Total
     doc.setFillColor(230, 240, 255);
     doc.rect(130, y, 70, 12, 'F');
     doc.setFont("helvetica", "bold");
@@ -231,12 +217,9 @@ function generarPDF(doc, cliente, numero, fecha) {
     doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 105, 290, null, null, "center");
     doc.text("Dirección: Roncahue 150", 105, 295, null, null, "center");
 
-    // Nombre archivo seguro
     const nombreArchivo = `Presupuesto_${numero}_${cliente.replace(/\s+/g, "_").substring(0, 30)}.pdf`;
     doc.save(nombreArchivo);
 }
-
-
 
 function poblarHistorial() {
     const select = document.getElementById("presupuestoHistorial");
@@ -247,7 +230,7 @@ function poblarHistorial() {
     presupuestos.slice().reverse().forEach((presupuesto, index) => {
         const texto = `${presupuesto.numero} - ${presupuesto.cliente}`;
         const option = document.createElement("option");
-        option.value = presupuestos.length - 1 - index; // índice original
+        option.value = presupuestos.length - 1 - index;
         option.textContent = texto;
         select.appendChild(option);
     });
