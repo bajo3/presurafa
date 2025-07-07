@@ -20,6 +20,12 @@
         <p><strong>Presupuesto N°:</strong><br><input type="text" id="numero" value="0001"></p>
         <p><strong>Dirección:</strong><br><input type="text" id="direccion" placeholder="Calle y ciudad"></p>
         <p><strong>Fecha:</strong><br><input type="date" id="fecha"></p>
+        <p><strong>Historial:</strong><br>
+            <select id="presupuestoHistorial" onchange="cargarDesdeHistorial()">
+                <option value="">-- Seleccioná uno --</option>
+            </select>
+        </p>
+
 
         <table id="tabla">
             <thead>

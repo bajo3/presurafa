@@ -20,14 +20,29 @@ function agregarFila(desc = '', precio = 0) {
     let cell3 = row.insertCell(2);
 
     cell1.innerHTML = `<input type="text" class="desc" placeholder="Descripción" value="${desc}">`;
-    cell2.innerHTML = `<input type="number" class="precio" value="${precio}" oninput="calcularTotal()">`;
-    cell3.innerHTML = `<button onclick="this.closest('tr').remove(); calcularTotal();">❌</button>`;
+    cell2.innerHTML = `<input type="number" class="precio" step="0.01" value="${precio}" oninput="calcularTotal()">`;
+    cell3.innerHTML = `<button type="button" onclick="this.closest('tr').remove(); calcularTotal();">❌</button>`;
 }
 
 function guardarPresupuesto() {
+    let numero = document.getElementById("numero").value.trim();
+
+    if (!numero) {
+        let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPresupuesto") || "0");
+        numero = (ultimoNumero + 1).toString().padStart(4, '0');
+        document.getElementById("numero").value = numero;
+        localStorage.setItem("ultimoNumeroPresupuesto", parseInt(numero));
+    } else {
+        let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPresupuesto") || "0");
+        let numeroInt = parseInt(numero);
+        if (numeroInt > ultimoNumero) {
+            localStorage.setItem("ultimoNumeroPresupuesto", numeroInt);
+        }
+    }
+
     const data = {
         cliente: document.getElementById("cliente").value,
-        numero: document.getElementById("numero").value,
+        numero: numero,
         direccion: document.getElementById("direccion").value,
         fecha: document.getElementById("fecha").value,
         iva: document.getElementById("agregarIVA").checked,
@@ -37,9 +52,21 @@ function guardarPresupuesto() {
             precio: tr.querySelector('.precio').value
         }))
     };
-    localStorage.setItem("presupuesto", JSON.stringify(data));
+
+    let presupuestos = JSON.parse(localStorage.getItem("presupuestos")) || [];
+    presupuestos.push(data);
+
+    // Mantener solo los últimos 10 presupuestos
+    if (presupuestos.length > 10) {
+        presupuestos = presupuestos.slice(presupuestos.length - 10);
+    }
+
+    localStorage.setItem("presupuestos", JSON.stringify(presupuestos));
+    localStorage.setItem("presupuesto", JSON.stringify(data)); // último presupuesto cargado
+
     alert("Presupuesto guardado");
 }
+
 
 function cargarPresupuesto() {
     const data = JSON.parse(localStorage.getItem("presupuesto"));
@@ -59,12 +86,31 @@ function cargarPresupuesto() {
     calcularTotal();
 }
 
+window.addEventListener("DOMContentLoaded", () => {
+    if (document.querySelectorAll("#tabla tbody tr").length === 0) {
+        agregarFila();
+    }
+    poblarHistorial();
+});
+
+
 function descargarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
     const cliente = document.getElementById("cliente").value || "Cliente";
-    const numero = document.getElementById("numero").value || "0001";
+    let numero = document.getElementById("numero").value;
+
+    // Si el campo está vacío, tomar el siguiente correlativo
+    if (!numero || numero.trim() === "") {
+        let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroPresupuesto") || "0");
+        numero = (ultimoNumero + 1).toString().padStart(4, '0');
+        document.getElementById("numero").value = numero;
+    }
+
+    // Guardar el nuevo número como el último usado
+    localStorage.setItem("ultimoNumeroPresupuesto", parseInt(numero));
+
     const fecha = document.getElementById("fecha").value || new Date().toISOString().split('T')[0];
 
     const img = new Image();
@@ -79,26 +125,30 @@ function descargarPDF() {
 }
 
 function generarPDF(doc, cliente, numero, fecha) {
+    doc.setFont("helvetica", "normal");
+
     doc.setFillColor(0, 0, 0);
     doc.rect(10, 55, 190, 10, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
-    doc.text("PRESUPUESTO", 90, 62);
+    doc.text("PRESUPUESTO", 105, 62, null, null, 'center');
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
-    doc.text("Cliente: " + cliente, 20, 80);
-    doc.text("Presupuesto N°: " + numero, 120, 80);
 
-    // Dirección multilínea
+    const clienteLines = doc.splitTextToSize("Cliente: " + cliente, 90);
+    doc.text(clienteLines, 20, 80);
+
+    const offsetY = clienteLines.length > 1 ? (clienteLines.length - 1) * 6 : 0;
+    doc.text("Presupuesto N°: " + numero, 120, 80 + offsetY);
+
     const direccion = document.getElementById("direccion").value || "";
     const direccionLines = doc.splitTextToSize("Dirección: " + direccion, 90);
-    doc.text(direccionLines, 20, 90);
+    const yDireccion = 90 + offsetY;
+    doc.text(direccionLines, 20, yDireccion);
+    doc.text("Fecha: " + fecha, 120, yDireccion + direccionLines.length * 6);
 
-    // Fecha en línea separada debajo
-    doc.text("Fecha: " + fecha, 120, 90 + direccionLines.length * 6);
-
-    let y = 110;
+    let y = yDireccion + direccionLines.length * 6 + 20;
     doc.setFontSize(14);
     doc.text("Descripción", 20, y);
     doc.text("Precio", 150, y);
@@ -129,7 +179,6 @@ function generarPDF(doc, cliente, numero, fecha) {
     const total = parseFloat(document.getElementById("total").textContent).toLocaleString('es-AR', { minimumFractionDigits: 2 });
     doc.text("Total: $" + total, 150, y + 10);
 
-    // Observaciones
     const obs = document.getElementById("observaciones").value;
     if (obs.trim()) {
         y += 20;
@@ -140,11 +189,50 @@ function generarPDF(doc, cliente, numero, fecha) {
     }
 
     doc.setFontSize(10);
-    doc.text("Gracias por su preferencia", 80, 280);
+    doc.text("Gracias por su preferencia", 105, 280, null, null, 'center');
     doc.line(10, 285, 200, 285);
     doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 40, 290);
     doc.text("Dirección: Roncahue 150", 65, 295);
 
-    const nombreArchivo = `Presupuesto_${numero}_${cliente}.pdf`;
+    const nombreArchivo = `Presupuesto_${numero}_${cliente.replace(/\s+/g, "_").substring(0, 30)}.pdf`;
     doc.save(nombreArchivo);
+}
+
+
+function poblarHistorial() {
+    const select = document.getElementById("presupuestoHistorial");
+    const presupuestos = JSON.parse(localStorage.getItem("presupuestos")) || [];
+
+    select.innerHTML = '<option value="">-- Seleccioná uno --</option>';
+
+    presupuestos.slice().reverse().forEach((presupuesto, index) => {
+        const texto = `${presupuesto.numero} - ${presupuesto.cliente}`;
+        const option = document.createElement("option");
+        option.value = presupuestos.length - 1 - index; // índice original
+        option.textContent = texto;
+        select.appendChild(option);
+    });
+}
+
+function cargarDesdeHistorial() {
+    const index = document.getElementById("presupuestoHistorial").value;
+    if (index === "") return;
+
+    const presupuestos = JSON.parse(localStorage.getItem("presupuestos")) || [];
+    const data = presupuestos[index];
+
+    if (!data) return alert("Presupuesto no encontrado");
+
+    document.getElementById("cliente").value = data.cliente;
+    document.getElementById("numero").value = data.numero;
+    document.getElementById("direccion").value = data.direccion;
+    document.getElementById("fecha").value = data.fecha;
+    document.getElementById("agregarIVA").checked = data.iva;
+    document.getElementById("observaciones").value = data.observaciones;
+
+    const tbody = document.querySelector("#tabla tbody");
+    tbody.innerHTML = "";
+    data.items.forEach(item => agregarFila(item.desc, item.precio));
+
+    calcularTotal();
 }
