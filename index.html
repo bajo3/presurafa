@@ -5,121 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presupuesto</title>
+    <link rel="stylesheet" href="estilos.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-        /* Fuente principal */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 40px auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .logo img {
-            width: 150px;
-        }
-
-        .black-box {
-            background: #007bff;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 20px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        p {
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="date"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            margin-top: 5px;
-            font-size: 14px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        table thead {
-            background-color: #007bff;
-            color: white;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-
-        table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .add-btn,
-        .download-btn {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 10px;
-            transition: background-color 0.3s ease;
-        }
-
-        .add-btn:hover,
-        .download-btn:hover {
-            background-color: #0056b3;
-        }
-
-        .total {
-            font-size: 18px;
-            font-weight: bold;
-            text-align: right;
-            margin-top: 10px;
-            color: #333;
-        }
-
-        h3 {
-            margin-top: 30px;
-            color: #007bff;
-        }
-
-        .info-pago {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-    </style>
 </head>
 
 <body>
@@ -128,6 +15,7 @@
             <img src="logo.png" alt="Logo">
         </div>
         <div class="black-box">PRESUPUESTO</div>
+
         <p><strong>Cliente:</strong><br><input type="text" id="cliente" placeholder="Nombre del cliente"></p>
         <p><strong>Presupuesto N°:</strong><br><input type="text" id="numero" value="0001"></p>
         <p><strong>Dirección:</strong><br><input type="text" id="direccion" placeholder="Calle y ciudad"></p>
@@ -138,6 +26,7 @@
                 <tr>
                     <th>Descripción</th>
                     <th>Precio</th>
+                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody>
@@ -145,7 +34,11 @@
             </tbody>
         </table>
 
-        <button class="add-btn" onclick="agregarFila()">Agregar Ítem</button>
+        <div class="opciones-extra">
+            <label><input type="checkbox" id="agregarIVA" onchange="calcularTotal()"> Aplicar IVA (21%)</label>
+        </div>
+
+        <textarea id="observaciones" placeholder="Observaciones o notas adicionales..."></textarea>
 
         <p class="total">Total: $<span id="total">0</span></p>
 
@@ -156,110 +49,15 @@
             <p><strong>MercadoPago</strong></p>
         </div>
 
-        <button class="download-btn" onclick="descargarPDF()">Descargar PDF</button>
+        <div class="acciones">
+            <button class="add-btn" onclick="agregarFila()">Agregar Ítem</button>
+            <button class="download-btn" onclick="descargarPDF()">Descargar PDF</button>
+            <button class="download-btn" onclick="guardarPresupuesto()">Guardar</button>
+            <button class="download-btn" onclick="cargarPresupuesto()">Cargar</button>
+        </div>
     </div>
 
-    <script>
-        function calcularTotal() {
-            let total = 0;
-            document.querySelectorAll('.precio').forEach(input => {
-                total += parseFloat(input.value) || 0;
-            });
-            document.getElementById("total").textContent = total.toFixed(2);
-        }
-
-        function agregarFila() {
-            let tableBody = document.querySelector("#tabla tbody");
-            let row = tableBody.insertRow();
-            let cell1 = row.insertCell(0);
-            let cell2 = row.insertCell(1);
-            cell1.innerHTML = '<input type="text" class="desc" placeholder="Descripción">';
-            cell2.innerHTML = '<input type="number" class="precio" value="0" oninput="calcularTotal()">';
-        }
-
-        function descargarPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            const cliente = document.getElementById("cliente").value || "Cliente";
-            const numero = document.getElementById("numero").value || "0001";
-            const fecha = document.getElementById("fecha").value || new Date().toISOString().split('T')[0];
-
-            const img = new Image();
-            img.src = 'logo.png';
-            img.onload = function () {
-                doc.addImage(img, 'PNG', 10, 10, 40, 40);
-                generarPDF(doc, cliente, numero, fecha);
-            };
-            img.onerror = function () {
-                generarPDF(doc, cliente, numero, fecha);
-            };
-        }
-
-        function generarPDF(doc, cliente, numero, fecha) {
-            doc.setFillColor(0, 0, 0);
-            doc.rect(10, 55, 190, 10, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(16);
-            doc.text("PRESUPUESTO", 90, 62);
-
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            doc.text("Cliente: " + cliente, 20, 80);
-            doc.text("Presupuesto N°: " + numero, 120, 80);
-            doc.text("Dirección: " + document.getElementById("direccion").value, 20, 90);
-            doc.text("Fecha: " + fecha, 120, 90);
-
-            let y = 110;
-            doc.setFontSize(14);
-            doc.text("Descripción", 20, y);
-            doc.text("Precio", 150, y);
-            doc.line(20, y + 2, 190, y + 2);
-            y += 10;
-
-            let itemsDesc = document.querySelectorAll('.desc');
-            let itemsPrecio = document.querySelectorAll('.precio');
-            doc.setFontSize(12);
-
-            for (let i = 0; i < itemsDesc.length; i++) {
-                let desc = itemsDesc[i].value || "";
-                let precio = itemsPrecio[i].value || "0.00";
-
-                // Divide la descripción en líneas
-                let descLines = doc.splitTextToSize(desc, 120);
-
-                // Imprime la descripción (múltiples líneas si es necesario)
-                doc.text(descLines, 20, y);
-
-                // Imprime el precio en la primera línea
-                doc.text("$" + parseFloat(precio).toFixed(2), 150, y);
-
-                // Calcula la altura que ocupa el bloque
-                let lineHeight = 6; // Espaciado entre líneas
-                let blockHeight = descLines.length * lineHeight;
-
-                // Dibuja la línea solo al final del bloque
-                y += blockHeight + 2;
-                doc.line(20, y, 190, y);
-
-                y += 4; // Espacio antes del siguiente ítem
-            }
-
-
-            doc.setFontSize(14);
-            const total = parseFloat(document.getElementById("total").textContent).toLocaleString('es-AR', { minimumFractionDigits: 2 });
-            doc.text("Total: $" + total, 150, y + 10);
-
-            doc.setFontSize(10);
-            doc.text("Gracias por su preferencia", 80, 280);
-            doc.line(10, 285, 200, 285);
-            doc.text("Teléfono: +54 9 2494 46-8585 | Tandil Buenos Aires", 40, 290);
-            doc.text("Dirección: Roncahue 150", 65, 295);
-
-            const nombreArchivo = `Presupuesto_${numero}_${cliente}.pdf`;
-            doc.save(nombreArchivo);
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 
 </html>
